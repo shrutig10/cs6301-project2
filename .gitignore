@@ -1,0 +1,18 @@
+# Local Python environment
+.venv/
+
+# Generated Python files
+__pycache__/
+*.py[cod]
+
+# Downloaded CIFAR-10 dataset
+data/cifar-10-batches-py/
+data/cifar-10-python.tar.gz
+
+# Saved model weights
+checkpoints/
+*.pt
+*.pth
+
+# macOS metadata
+.DS_Store
