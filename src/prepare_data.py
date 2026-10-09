@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 
 import torch
-from torch.utils.data import Subset
+from torch.utils.data import DataLoader, Subset
 
 from torchvision import datasets, transforms
 
@@ -72,3 +72,110 @@ assert train_indices.isdisjoint(validation_indices)
 assert train_indices | validation_indices == set(range(50000))
 
 print("Split checks passed.")
+
+statistics_loader = DataLoader(
+    train_dataset,
+    batch_size=256,
+    shuffle=False,
+    num_workers=0,
+)
+
+channel_sum = torch.zeros(3, dtype=torch.float64)
+channel_squared_sum = torch.zeros(3, dtype=torch.float64)
+pixels_per_channel = 0
+
+for images, labels in statistics_loader:
+    images = images.to(dtype=torch.float64)
+
+    channel_sum += images.sum(dim=(0, 2, 3))
+    channel_squared_sum += images.square().sum(dim=(0, 2, 3))
+
+    pixels_per_channel += (
+        images.shape[0] * images.shape[2] * images.shape[3]
+    )
+
+channel_mean = channel_sum / pixels_per_channel
+
+channel_variance = (
+    channel_squared_sum / pixels_per_channel
+    - channel_mean.square()
+)
+
+channel_std = channel_variance.clamp(min=0).sqrt()
+
+print("Training channel means:", channel_mean.tolist())
+print("Training channel standard deviations:", channel_std.tolist())
+
+statistics = {
+    "source": "45000-image training split",
+    "split_seed": 42,
+    "mean": channel_mean.tolist(),
+    "std": channel_std.tolist(),
+}
+
+statistics_path = data_dir / "normalization.json"
+
+with statistics_path.open("w") as file:
+    json.dump(statistics, file, indent=2)
+
+print("Normalization statistics saved.")
+
+normalized_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=statistics["mean"],
+        std=statistics["std"],
+    ),
+])
+
+normalized_full_dataset = datasets.CIFAR10(
+    root=str(data_dir),
+    train=True,
+    download=False,
+    transform=normalized_transform,
+)
+
+normalized_train_dataset = Subset(
+    normalized_full_dataset,
+    split_indices["train"],
+)
+
+normalized_validation_dataset = Subset(
+    normalized_full_dataset,
+    split_indices["validation"],
+)
+
+batch_size = 64
+
+training_order_generator = torch.Generator().manual_seed(0)
+
+train_loader = DataLoader(
+    normalized_train_dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    generator=training_order_generator,
+    num_workers=0,
+    drop_last=False,
+)
+
+validation_loader = DataLoader(
+    normalized_validation_dataset,
+    batch_size=batch_size,
+    shuffle=False,
+    num_workers=0,
+    drop_last=False,
+)
+
+images, labels = next(iter(train_loader))
+
+print("Training batch image shape:", images.shape)
+print("Training batch label shape:", labels.shape)
+print("Image data type:", images.dtype)
+print("Label data type:", labels.dtype)
+
+assert images.shape == (64, 3, 32, 32)
+assert labels.shape == (64,)
+assert torch.isfinite(images).all().item()
+assert ((labels >= 0) & (labels < 10)).all().item()
+
+print("Batch checks passed.")
