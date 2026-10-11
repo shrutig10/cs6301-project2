@@ -1,3 +1,4 @@
+import argparse
 import json
 import random
 import time
@@ -14,8 +15,15 @@ from engine import evaluate, train_one_epoch
 
 
 def main():
-    seed = 0
-    epochs = 2
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, choices=[0, 1, 2], required=True)
+    parser.add_argument("--augment", action="store_true")
+    args = parser.parse_args()
+
+    seed = args.seed
+    use_augmentation = args.augment
+
+    epochs = 20
     batch_size = 64
     learning_rate = 0.001
 
@@ -31,7 +39,8 @@ def main():
     results_dir.mkdir(parents=True, exist_ok=True)
     checkpoints_dir.mkdir(parents=True, exist_ok=True)
 
-    run_name = "baseline_trial_seed0"
+    configuration = "augmented" if use_augmentation else "no_augmentation"
+    run_name = f"partB_{configuration}_seed{seed}"
     log_path = results_dir / f"{run_name}.json"
     checkpoint_path = checkpoints_dir / f"{run_name}.pt"
 
@@ -47,24 +56,47 @@ def main():
     with (data_dir / "normalization.json").open("r") as file:
         statistics = json.load(file)
 
-    image_transform = transforms.Compose([
+    normalize = transforms.Normalize(
+        mean=statistics["mean"],
+        std=statistics["std"],
+    )
+
+    validation_transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(
-            mean=statistics["mean"],
-            std=statistics["std"],
-        ),
+        normalize,
     ])
 
-    full_dataset = datasets.CIFAR10(
+    if use_augmentation:
+        training_transform = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ToTensor(),
+            normalize,
+        ])
+    else:
+        training_transform = validation_transform
+
+    training_source = datasets.CIFAR10(
         root=str(data_dir),
         train=True,
         download=False,
-        transform=image_transform,
+        transform=training_transform,
     )
 
-    train_dataset = Subset(full_dataset, split_indices["train"])
+    validation_source = datasets.CIFAR10(
+        root=str(data_dir),
+        train=True,
+        download=False,
+        transform=validation_transform,
+    )
+
+    train_dataset = Subset(
+        training_source,
+        split_indices["train"],
+    )
+
     validation_dataset = Subset(
-        full_dataset,
+        validation_source,
         split_indices["validation"],
     )
 
@@ -107,7 +139,11 @@ def main():
         "optimizer": "Adam",
         "learning_rate": learning_rate,
         "weight_decay": 0.0,
-        "augmentation": False,
+        "augmentation": use_augmentation,
+        "augmentation_details": (
+            {"crop_padding": 4, "horizontal_flip_probability": 0.5}
+            if use_augmentation else None
+        ),
         "normalization": statistics,
         "device": str(device),
         "torch_version": str(torch.__version__),
