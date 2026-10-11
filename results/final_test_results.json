@@ -1,0 +1,31 @@
+{
+  "selected_configuration": "Residual CNN",
+  "selection_metric": "Mean best-validation accuracy across seeds",
+  "test_examples": 10000,
+  "device": "mps",
+  "seed_results": [
+    {
+      "seed": 0,
+      "selected_epoch": 19,
+      "test_accuracy": 0.8361,
+      "test_loss": 0.5043200043678284,
+      "checkpoint": "partC_residual_seed0.pt"
+    },
+    {
+      "seed": 1,
+      "selected_epoch": 18,
+      "test_accuracy": 0.8333,
+      "test_loss": 0.5168571817874908,
+      "checkpoint": "partC_residual_seed1.pt"
+    },
+    {
+      "seed": 2,
+      "selected_epoch": 19,
+      "test_accuracy": 0.8365,
+      "test_loss": 0.5000836102485656,
+      "checkpoint": "partC_residual_seed2.pt"
+    }
+  ],
+  "mean_test_accuracy": 0.8353,
+  "sample_std_test_accuracy": 0.001743559577416243
+}
