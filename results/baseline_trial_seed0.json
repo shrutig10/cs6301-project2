@@ -1,0 +1,50 @@
+{
+  "settings": {
+    "model": "BaselineCNN",
+    "seed": 0,
+    "split_seed": 42,
+    "epochs": 2,
+    "batch_size": 64,
+    "optimizer": "Adam",
+    "learning_rate": 0.001,
+    "weight_decay": 0.0,
+    "augmentation": false,
+    "normalization": {
+      "source": "45000-image training split",
+      "split_seed": 42,
+      "mean": [
+        0.49165572255588375,
+        0.4823340590957845,
+        0.4466792409572851
+      ],
+      "std": [
+        0.2470811602785194,
+        0.24350869632987002,
+        0.26158066485723697
+      ]
+    },
+    "device": "mps",
+    "torch_version": "2.14.1"
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "avg_train_loss": 1.6746887156380548,
+      "avg_val_loss": 1.4329348903656005,
+      "train_accuracy": 0.37355555555555553,
+      "val_accuracy": 0.4656,
+      "seconds": 7.70270716608502
+    },
+    {
+      "epoch": 2,
+      "avg_train_loss": 1.2648296255747478,
+      "avg_val_loss": 1.2369807199478149,
+      "train_accuracy": 0.5428888888888889,
+      "val_accuracy": 0.5668,
+      "seconds": 6.922250666888431
+    }
+  ],
+  "best_epoch": 2,
+  "best_val_accuracy": 0.5668,
+  "best_val_loss": 1.2369807199478149
+}
